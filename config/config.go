@@ -12,6 +12,7 @@ type Config struct {
 	TelegramToken     string
 	AllowedUsers      []string
 	WorkDir           string
+	DBPath            string
 	DefaultSSHKeyPath string
 	DefaultGitName    string
 	DefaultGitEmail   string
@@ -42,6 +43,11 @@ func LoadConfig() (*Config, error) {
 		workDir = "./tmp_repos"
 	}
 
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "./bot.db"
+	}
+
 	dryRun, _ := strconv.ParseBool(os.Getenv("DRY_RUN"))
 
 	gitName := os.Getenv("DEFAULT_GIT_NAME")
@@ -58,6 +64,7 @@ func LoadConfig() (*Config, error) {
 		TelegramToken:     token,
 		AllowedUsers:      allowedUsers,
 		WorkDir:           workDir,
+		DBPath:            dbPath,
 		DefaultSSHKeyPath: os.Getenv("DEFAULT_SSH_KEY_PATH"),
 		DefaultGitName:    gitName,
 		DefaultGitEmail:   gitEmail,

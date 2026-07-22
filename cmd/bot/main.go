@@ -46,7 +46,11 @@ func main() {
 
 	// Initialize Services
 	gitSvc := git.NewGitService(cfg.DefaultGitName, cfg.DefaultGitEmail, cfg.DryRun)
-	sessionMgr := botPkg.NewSessionManager(cfg.WorkDir)
+	sessionMgr, err := botPkg.NewSessionManager(cfg.DBPath, cfg.WorkDir)
+	if err != nil {
+		log.Fatalf("Failed to initialize SQLite session manager: %v", err)
+	}
+	defer sessionMgr.Close()
 
 	// Create Telebot Bot
 	pref := tele.Settings{
