@@ -184,6 +184,13 @@ func runCmdWithEnv(dir string, env []string, name string, args ...string) (strin
 	if dir != "" {
 		cmd.Dir = dir
 	}
+
+	// Disable interactive credential prompts and GUI dialogs
+	env = append(env,
+		"GIT_TERMINAL_PROMPT=0",
+		"GCM_INTERACTIVE=never",
+		"GIT_ASKPASS=",
+	)
 	cmd.Env = env
 
 	var outBuf, errBuf bytes.Buffer
