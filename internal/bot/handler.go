@@ -158,8 +158,11 @@ func (h *BotHandler) handleSetRepo(c tele.Context) error {
 		return c.Send("❌ Please specify repo URL. Usage: `/setrepo git@github.com:user/repo.git`", tele.ModeMarkdown)
 	}
 
-	h.sessions.SetRepo(c.Sender().ID, repoURL)
-	return c.Send(fmt.Sprintf("✅ Default repository updated to: `%s`", repoURL), tele.ModeMarkdown)
+	sess := h.sessions.Get(c.Sender().ID)
+	normalized := git.FormatRepoURL(repoURL, sess.Token)
+
+	h.sessions.SetRepo(c.Sender().ID, normalized)
+	return c.Send(fmt.Sprintf("✅ Default repository updated to: `%s`", sanitizeURL(normalized)), tele.ModeMarkdown)
 }
 
 func (h *BotHandler) handleSetBranch(c tele.Context) error {
