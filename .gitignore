@@ -1,0 +1,23 @@
+# Binaries
+*.exe
+*.exe;
+*.dll
+*.so
+*.dylib
+telegram-git-pusher
+
+# Test binaries
+*.test
+
+# Output of go build
+/bin/
+
+# Temporary directories
+tmp_repos/
+*.tmp
+
+# Environment variables & keys
+.env
+*.pem
+id_rsa
+id_rsa*
