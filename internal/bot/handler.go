@@ -2,6 +2,7 @@ package bot
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -219,7 +220,7 @@ func (h *BotHandler) handleClearToken(c tele.Context) error {
 	return c.Send("🗑 HTTPS Token cleared.", tele.ModeMarkdown)
 }
 
-// handleDocument processes uploaded ZIP archives
+// handleDocument processes uploaded ZIP archives or SSH key files
 func (h *BotHandler) handleDocument(c tele.Context) error {
 	if !h.isAuthorized(c) {
 		return nil
@@ -230,16 +231,36 @@ func (h *BotHandler) handleDocument(c tele.Context) error {
 		return nil
 	}
 
+	caption := strings.TrimSpace(c.Message().Caption)
+
+	// If document uploaded with /setkey caption, handle saving SSH key file!
+	if strings.HasPrefix(caption, "/setkey") {
+		fileReader, err := h.bot.File(&doc.File)
+		if err != nil {
+			return c.Send("❌ Failed to download SSH key file.")
+		}
+		defer fileReader.Close()
+
+		keyBytes, err := io.ReadAll(fileReader)
+		if err != nil {
+			return c.Send("❌ Failed to read SSH key file content.")
+		}
+
+		keyContent := NormalizeSSHKeyPEM(string(keyBytes))
+		h.sessions.SetSSHKey(c.Sender().ID, keyContent)
+		return c.Send("✅ SSH Private Key saved successfully from file upload!", tele.ModeMarkdown)
+	}
+
 	// Ensure document is a ZIP file
 	if !strings.HasSuffix(strings.ToLower(doc.FileName), ".zip") {
-		return c.Send("⚠️ Please send a **.zip** file archive containing your code.", tele.ModeMarkdown)
+		return c.Send("⚠️ Please send a **.zip** file archive containing your code, or upload your SSH private key file with caption `/setkey`.", tele.ModeMarkdown)
 	}
 
 	userID := c.Sender().ID
 	sess := h.sessions.Get(userID)
 
 	// Step 1: Parse parameters from caption or user defaults
-	caption := strings.TrimSpace(c.Message().Caption)
+	caption = strings.TrimSpace(c.Message().Caption)
 	repoURL, branch, commitMsg := parseCaption(caption, sess.RepoURL, sess.Branch)
 
 	// Progress notification message

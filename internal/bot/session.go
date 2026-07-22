@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -200,10 +201,74 @@ func (sm *SessionManager) SaveSSHKeyToFile(userID int64) (string, error) {
 		return "", err
 	}
 
+	normalizedPEM := NormalizeSSHKeyPEM(s.SSHKeyPEM)
 	keyPath := filepath.Join(keysDir, fmt.Sprintf("%d_id_rsa", userID))
 	// Write with strict 0600 permissions required by SSH
-	if err := os.WriteFile(keyPath, []byte(s.SSHKeyPEM), 0600); err != nil {
+	if err := os.WriteFile(keyPath, []byte(normalizedPEM), 0600); err != nil {
 		return "", err
 	}
 	return keyPath, nil
+}
+
+// NormalizeSSHKeyPEM cleans and formats SSH private key strings to ensure valid OpenSSH PEM format.
+func NormalizeSSHKeyPEM(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+
+	// Standardize line endings
+	raw = strings.ReplaceAll(raw, "\r\n", "\n")
+
+	headers := []string{
+		"-----BEGIN OPENSSH PRIVATE KEY-----",
+		"-----BEGIN RSA PRIVATE KEY-----",
+		"-----BEGIN PRIVATE KEY-----",
+		"-----BEGIN EC PRIVATE KEY-----",
+		"-----BEGIN DSA PRIVATE KEY-----",
+	}
+	footers := []string{
+		"-----END OPENSSH PRIVATE KEY-----",
+		"-----END RSA PRIVATE KEY-----",
+		"-----END PRIVATE KEY-----",
+		"-----END EC PRIVATE KEY-----",
+		"-----END DSA PRIVATE KEY-----",
+	}
+
+	var header, footer string
+	for _, h := range headers {
+		if strings.Contains(raw, h) {
+			header = h
+			break
+		}
+	}
+	for _, f := range footers {
+		if strings.Contains(raw, f) {
+			footer = f
+			break
+		}
+	}
+
+	if header != "" && footer != "" {
+		startIdx := strings.Index(raw, header) + len(header)
+		endIdx := strings.Index(raw, footer)
+		if startIdx < endIdx {
+			body := strings.TrimSpace(raw[startIdx:endIdx])
+			// Replace any spaces inside body with newlines
+			bodyFields := strings.Fields(body)
+			bodyClean := strings.Join(bodyFields, "\n")
+			return header + "\n" + bodyClean + "\n" + footer + "\n"
+		}
+	}
+
+	// Fallback cleanup
+	lines := strings.Split(raw, "\n")
+	var cleaned []string
+	for _, line := range lines {
+		t := strings.TrimSpace(line)
+		if t != "" {
+			cleaned = append(cleaned, t)
+		}
+	}
+	return strings.Join(cleaned, "\n") + "\n"
 }
