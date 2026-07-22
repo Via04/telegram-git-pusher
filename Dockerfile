@@ -1,10 +1,14 @@
 # --- Stage 1: Build binary ---
-FROM golang:1.24-alpine AS builder
+FROM golang:alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git
 
 WORKDIR /app
+
+# Set Go module download environment variables
+ENV GONOSUMDB=*
+ENV GOPROXY=https://proxy.golang.org,direct
 
 # Copy dependency definitions
 COPY go.mod go.sum ./
