@@ -177,6 +177,9 @@ func (g *GitService) StageCommitPush(targetDir, branch, commitMsg, authorName, a
 // FormatRepoURL handles URL normalization and token insertion.
 func FormatRepoURL(repoURL, token string) string {
 	repoURL = strings.TrimSpace(repoURL)
+	if repoURL == "" {
+		return ""
+	}
 
 	// If missing prefix (e.g. github.com/owner/repo.git), auto-fix format
 	if !strings.HasPrefix(repoURL, "http://") &&
@@ -194,7 +197,7 @@ func FormatRepoURL(repoURL, token string) string {
 			} else {
 				repoURL = "https://" + repoURL
 			}
-		} else {
+		} else if strings.Contains(repoURL, "/") || strings.Contains(repoURL, ".") {
 			repoURL = "https://" + repoURL
 		}
 	}

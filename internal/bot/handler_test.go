@@ -43,4 +43,10 @@ func TestParseCaption(t *testing.T) {
 	if m != "Update code via Telegram Bot" {
 		t.Errorf("Case 6 failed: got msg=%s", m)
 	}
+
+	// Case 7: Text caption when default repo is empty should return empty repo (prompting user)
+	r, b, m = parseCaption("made some changes in code", "", defaultBranch)
+	if r != "" {
+		t.Errorf("Case 7 failed: expected empty repo, got %s", r)
+	}
 }

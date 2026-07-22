@@ -476,11 +476,13 @@ func parseCaption(caption, defaultRepo, defaultBranch string) (repo, branch, mes
 		return
 	}
 
-	// 4. Otherwise: If default repo is configured, treat the entire caption as the commit message!
+	// 4. If default repo is configured, treat the entire caption as the commit message!
 	if defaultRepo != "" {
 		message = strings.Trim(caption, "\"'")
+		return
 	}
 
+	// 5. If no default repo and caption is not a repo URL, return empty repo so user is prompted to set repo
 	return
 }
 
