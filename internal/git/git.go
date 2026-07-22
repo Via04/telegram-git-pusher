@@ -168,8 +168,31 @@ func (g *GitService) StageCommitPush(targetDir, branch, commitMsg, authorName, a
 	}, nil
 }
 
-// FormatRepoURL handles HTTPS credentials insertion if token is provided.
+// FormatRepoURL handles URL normalization and token insertion.
 func FormatRepoURL(repoURL, token string) string {
+	repoURL = strings.TrimSpace(repoURL)
+
+	// If missing prefix (e.g. github.com/owner/repo.git), auto-fix format
+	if !strings.HasPrefix(repoURL, "http://") &&
+		!strings.HasPrefix(repoURL, "https://") &&
+		!strings.HasPrefix(repoURL, "git@") &&
+		!strings.HasPrefix(repoURL, "ssh://") {
+
+		if token != "" {
+			repoURL = "https://" + repoURL
+		} else if strings.Contains(repoURL, "github.com/") || strings.Contains(repoURL, "gitlab.com/") || strings.Contains(repoURL, "bitbucket.org/") {
+			// Convert github.com/owner/repo.git -> git@github.com:owner/repo.git
+			parts := strings.SplitN(repoURL, "/", 2)
+			if len(parts) == 2 {
+				repoURL = fmt.Sprintf("git@%s:%s", parts[0], parts[1])
+			} else {
+				repoURL = "https://" + repoURL
+			}
+		} else {
+			repoURL = "https://" + repoURL
+		}
+	}
+
 	if token == "" || !strings.HasPrefix(repoURL, "https://") {
 		return repoURL
 	}

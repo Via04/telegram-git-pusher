@@ -71,4 +71,10 @@ func TestFormatRepoURL(t *testing.T) {
 	if FormatRepoURL(sshURL, token) != sshURL {
 		t.Errorf("SSH URL should remain unchanged")
 	}
+
+	rawURL := "github.com/Via04/abap-autoempl.git"
+	expectedSSH := "git@github.com:Via04/abap-autoempl.git"
+	if FormatRepoURL(rawURL, "") != expectedSSH {
+		t.Errorf("Expected raw URL to be converted to %s, got %s", expectedSSH, FormatRepoURL(rawURL, ""))
+	}
 }
