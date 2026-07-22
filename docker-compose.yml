@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  telegram-git-pusher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: telegram-git-pusher
+    restart: unless-stopped
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - ALLOWED_USERS=${ALLOWED_USERS}
+      - WORK_DIR=/app/tmp_repos
+      - DB_PATH=/app/data/bot.db
+      - DRY_RUN=${DRY_RUN:-false}
+      - DEFAULT_GIT_NAME=${DEFAULT_GIT_NAME:-Telegram Bot Pusher}
+      - DEFAULT_GIT_EMAIL=${DEFAULT_GIT_EMAIL:-bot@telegram.local}
+    volumes:
+      - bot_data:/app/data
+      - bot_tmp:/app/tmp_repos
+
+volumes:
+  bot_data:
+  bot_tmp:
