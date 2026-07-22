@@ -203,6 +203,9 @@ func (sm *SessionManager) SaveSSHKeyToFile(userID int64) (string, error) {
 
 	normalizedPEM := NormalizeSSHKeyPEM(s.SSHKeyPEM)
 	keyPath := filepath.Join(keysDir, fmt.Sprintf("%d_id_rsa", userID))
+	if absPath, err := filepath.Abs(keyPath); err == nil {
+		keyPath = absPath
+	}
 	// Write with strict 0600 permissions required by SSH
 	if err := os.WriteFile(keyPath, []byte(normalizedPEM), 0600); err != nil {
 		return "", err

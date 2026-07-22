@@ -42,7 +42,10 @@ func (g *GitService) CloneOrPrepare(repoURL, branch, targetDir, sshKeyPath, toke
 	// Prepare env vars for SSH if key provided
 	env := os.Environ()
 	if sshKeyPath != "" {
-		sshCmd := fmt.Sprintf("ssh -i %s -o StrictHostKeyChecking=no", filepath.ToSlash(sshKeyPath))
+		if absPath, err := filepath.Abs(sshKeyPath); err == nil {
+			sshKeyPath = absPath
+		}
+		sshCmd := fmt.Sprintf("ssh -i %q -o StrictHostKeyChecking=no", filepath.ToSlash(sshKeyPath))
 		env = append(env, "GIT_SSH_COMMAND="+sshCmd)
 	}
 
@@ -86,7 +89,10 @@ func (g *GitService) StageCommitPush(targetDir, branch, commitMsg, authorName, a
 
 	env := os.Environ()
 	if sshKeyPath != "" {
-		sshCmd := fmt.Sprintf("ssh -i %s -o StrictHostKeyChecking=no", filepath.ToSlash(sshKeyPath))
+		if absPath, err := filepath.Abs(sshKeyPath); err == nil {
+			sshKeyPath = absPath
+		}
+		sshCmd := fmt.Sprintf("ssh -i %q -o StrictHostKeyChecking=no", filepath.ToSlash(sshKeyPath))
 		env = append(env, "GIT_SSH_COMMAND="+sshCmd)
 	}
 
