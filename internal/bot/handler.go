@@ -417,11 +417,21 @@ func parseCaption(caption, defaultRepo, defaultBranch string) (repo, branch, mes
 	branch = defaultBranch
 	message = "Update code via Telegram Bot"
 
+	caption = strings.TrimSpace(caption)
 	if caption == "" {
 		return
 	}
 
-	// Check key=value format: repo=... branch=... msg=...
+	// 1. Explicit message prefix: -m "msg", msg: msg, /msg msg, message: msg
+	for _, prefix := range []string{"-m ", "msg: ", "message: ", "/msg "} {
+		if strings.HasPrefix(strings.ToLower(caption), prefix) {
+			message = strings.TrimSpace(caption[len(prefix):])
+			message = strings.Trim(message, "\"'")
+			return
+		}
+	}
+
+	// 2. Key-value format: repo=... branch=... msg=...
 	if strings.Contains(caption, "=") {
 		kvMap := parseKeyValueCaption(caption)
 		if r, ok := kvMap["repo"]; ok && r != "" {
@@ -439,23 +449,36 @@ func parseCaption(caption, defaultRepo, defaultBranch string) (repo, branch, mes
 		return
 	}
 
-	// Positional format: <repo_url> [branch] [commit message]
-	// Example: git@github.com:user/repo.git feature/login "Fix login bug"
-	re := regexp.MustCompile(`[^\s"']+|"[^"]*"|'[^']*'`)
-	tokens := re.FindAllString(caption, -1)
+	// 3. Positional format if caption starts with a repo URL or git domain
+	isRepoURL := strings.HasPrefix(caption, "git@") ||
+		strings.HasPrefix(caption, "https://") ||
+		strings.HasPrefix(caption, "http://") ||
+		strings.HasPrefix(caption, "github.com/") ||
+		strings.HasPrefix(caption, "gitlab.com/") ||
+		strings.HasPrefix(caption, "bitbucket.org/")
 
-	for i := range tokens {
-		tokens[i] = strings.Trim(tokens[i], "\"'")
+	if isRepoURL {
+		re := regexp.MustCompile(`[^\s"']+|"[^"]*"|'[^']*'`)
+		tokens := re.FindAllString(caption, -1)
+		for i := range tokens {
+			tokens[i] = strings.Trim(tokens[i], "\"'")
+		}
+
+		if len(tokens) >= 1 && tokens[0] != "" {
+			repo = tokens[0]
+		}
+		if len(tokens) >= 2 && tokens[1] != "" {
+			branch = tokens[1]
+		}
+		if len(tokens) >= 3 && tokens[2] != "" {
+			message = strings.Join(tokens[2:], " ")
+		}
+		return
 	}
 
-	if len(tokens) >= 1 && tokens[0] != "" {
-		repo = tokens[0]
-	}
-	if len(tokens) >= 2 && tokens[1] != "" {
-		branch = tokens[1]
-	}
-	if len(tokens) >= 3 && tokens[2] != "" {
-		message = strings.Join(tokens[2:], " ")
+	// 4. Otherwise: If default repo is configured, treat the entire caption as the commit message!
+	if defaultRepo != "" {
+		message = strings.Trim(caption, "\"'")
 	}
 
 	return
@@ -463,12 +486,12 @@ func parseCaption(caption, defaultRepo, defaultBranch string) (repo, branch, mes
 
 func parseKeyValueCaption(caption string) map[string]string {
 	result := make(map[string]string)
-	pairs := strings.Fields(caption)
-	for _, pair := range pairs {
-		parts := strings.SplitN(pair, "=", 2)
-		if len(parts) == 2 {
-			k := strings.ToLower(parts[0])
-			v := strings.Trim(parts[1], "\"")
+	re := regexp.MustCompile(`(\w+)=("[^"]*"|'[^']*'|[^\s]+)`)
+	matches := re.FindAllStringSubmatch(caption, -1)
+	for _, match := range matches {
+		if len(match) == 3 {
+			k := strings.ToLower(match[1])
+			v := strings.Trim(match[2], "\"'")
 			result[k] = v
 		}
 	}
